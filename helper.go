@@ -31,3 +31,12 @@ func Read(filename string) ([]string, error) {
 	return lines, nil
 
 }
+
+func FindIndexFunc(slice []string, f func(string) bool) int {
+	for i, v := range slice {
+		if f(v) {
+			return i
+		}
+	}
+	return -1 // Return -1 if no element meets the condition
+}

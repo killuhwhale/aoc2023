@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"unicode"
 	// "regexp"
 )
 
-func main() {
+func d5() {
 	fmt.Printf("Day 5! \n")
 
 	// dest - src - range
@@ -19,86 +20,128 @@ func main() {
 
 	maps, seeds := splitUpFarmList(allMaps)
 	fmt.Printf("Split maps\n")
-	loc := 0
-	mloc := 2 ^ 63
-	for _, seed := range seeds {
-		loc = getLoc(seed, maps)
-		fmt.Printf("Location for seed %d  = %d \n", seed, loc)
-		if loc < mloc {
-			mloc = loc
+	// fmt.Printf("Maps len=(%d) %v   \n", len(maps), maps)
+	var loc int64
+	var mloc int64
+	loc = 0
+	mloc = math.MaxInt64
+	fmt.Printf("Lowest Location %d \n", mloc)
+	pt2Seeds := getSeedRanges(seeds)
+	fmt.Printf("pt2Seeds %v \n", pt2Seeds)
+	// for _, seed := range seeds { // part 1
+	for _, seedPair := range pt2Seeds {
+		fmt.Printf("seedPair %v \n", seedPair)
+
+		startSeed := seedPair[0]
+		endSeed := seedPair[1] + startSeed
+
+		for seed := startSeed; seed <= endSeed; seed++ {
+			loc = getLoc(seed, maps)
+			// fmt.Printf("Location for seed %d  = %d \n", seed, loc)
+			if loc < mloc {
+				mloc = loc
+				fmt.Printf("Lowest Location %d \n", mloc)
+			}
+
 		}
+
 	}
 	fmt.Printf("Lowest Location %d \n", mloc)
 
 }
 
-func getLoc(seed int, maps []map[int]int) int {
-	// last := seed
-	current := seed
-	for _, m := range maps {
-		// fmt.Printf("Mapping lvl (%d) src: %d - dest %d  Map: %v  \n", i, current, m[current], m)
-		tmp, exists := m[current]
-		if exists {
-			current = tmp
+// [961540761 489996751]
+// Lowest Location 171065507
+
+func getSeedRanges(seeds []int64) [][]int64 {
+
+	var pairs [][]int64
+	var pair []int64
+	for i, n := range seeds {
+
+		pair = append(pair, n)
+		if i%2 == 1 {
+			pairs = append(pairs, pair)
+			pair = nil
 		}
 	}
+	return pairs
+}
+
+func getLoc(seed int64, maps [][][]int64) int64 {
+	// last := seed
+	current := seed
+	// fmt.Printf("-> %d ", current)
+	for _, group := range maps {
+		found := false
+		for _, mapping := range group {
+			if !found && current >= mapping[0] && current < mapping[0]+mapping[2] {
+				delta := current - mapping[0]
+				// fmt.Printf(" (%d+%d) ", delta, mapping[1])
+				current = mapping[1] + delta // dest start plus delta from current and src
+				found = true
+			}
+		}
+		// fmt.Printf("-> %d ", current)
+	}
+
 	return current
 }
 
-func splitUpFarmList(allMaps []string) ([]map[int]int, []int) {
+func splitUpFarmList(allMaps []string) ([][][]int64, []int64) {
 	seedListStr := allMaps[0]
 	seeds := getSeeds(seedListStr)
 
-	maps := make([]map[int]int, 7)
+	maps := make([][][]int64, 7)
 
-	m := make(map[int]int)
+	m := make([]int64, 3)
+	var group [][]int64
 	// header := ""
 	mc := 0
-	for i, line := range allMaps[2:] {
-		fmt.Printf("Line(%d): %s \n", i, line)
+	for _, line := range allMaps[3:] {
+		// fmt.Printf("Line(%d): %s \n", i, line)
 		if line == "" {
 			// fmt.Printf("Line [newline] (%d): %s \n", i, line)
-			maps[mc] = m
+			maps[mc] = group
+			// maps[mc] = m
 			mc++
-			m = make(map[int]int)
+			m = make([]int64, 3)
+			// Todo reint group slice to an empty slice
+			group = nil
+
 		} else if unicode.IsDigit(rune(line[0])) {
-			addToMap(line, m)
+			m = addToGroup(line)
+
+			group = append(group, m)
 		}
 		//  else if strings.Contains(line, "-") {
 		// 	header = line
 		// 	fmt.Printf("Header: %s \n", header)
 		// }
 	}
-	maps[mc] = m
+	maps[mc] = group
 	return maps, seeds
 }
 
-func addToMap(srcDestRangeStr string, m map[int]int) {
+func addToGroup(srcDestRangeStr string) []int64 {
 	srcDestRange := strsToNums(strings.Split(srcDestRangeStr, " "))
 	d := srcDestRange[0] // Dest start
 	s := srcDestRange[1] // Src Start
 	r := srcDestRange[2] // Range
-	i := 0
-	for i < r {
-		m[s] = d
-		d++
-		s++
-		i++
-	}
-	// fmt.Printf("Created map: %v \n", m)
+	return []int64{s, d, r}
 }
 
-func getSeeds(seedStr string) []int {
+func getSeeds(seedStr string) []int64 {
 	seedsStrArr := strings.Split(seedStr[len("seeds: "):], " ")
 	seeds := strsToNums(seedsStrArr)
 	fmt.Printf("Considering seeds: %v \n", seeds)
 	return seeds
 }
 
-func strsToNums(numStr []string) []int {
-	nums := make([]int, len(numStr))
+func strsToNums(numStr []string) []int64 {
+	nums := make([]int64, len(numStr))
 	for i, n := range numStr {
-		nums[i], _ = strconv.Atoi(n)
+		nums[i], _ = strconv.ParseInt(n, 10, 64)
 	}
 	return nums
 }

@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func main() {
+func d6() {
 	fmt.Printf("Day 6! \n")
 
 	// dest - src - range
